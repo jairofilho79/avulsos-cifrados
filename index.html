@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Índice de Louvores</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0b0c0f;
+        --fg: #e7e9ee;
+        --muted: #8a8fa3;
+        --accent: #4e8cff;
+        --row: rgba(255,255,255,0.04);
+      }
+      html, body { margin: 0; padding: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif; }
+      body { background: var(--bg); color: var(--fg); }
+      header { padding: 16px 20px; position: sticky; top: 0; background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.0)); backdrop-filter: blur(6px); z-index: 5; }
+      h1 { margin: 0 0 8px 0; font-size: 20px; }
+      .controls { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+      input[type="search"] { flex: 1 1 280px; padding: 10px 12px; border-radius: 8px; border: 1px solid #31364a; background: #0f1220; color: var(--fg); }
+      select { padding: 8px 10px; border-radius: 8px; border: 1px solid #31364a; background: #0f1220; color: var(--fg); }
+      main { padding: 8px 16px 24px; }
+      .count { color: var(--muted); font-size: 12px; margin-left: 4px; }
+      table { width: 100%; border-collapse: collapse; }
+      thead th { text-align: left; color: var(--muted); font-weight: 600; font-size: 12px; padding: 8px 10px; border-bottom: 1px solid #2a2f42; position: sticky; top: 66px; background: #0b0c0fee; backdrop-filter: blur(6px); z-index: 4; }
+      tbody td { padding: 10px; border-bottom: 1px solid #171a29; }
+      tbody tr:hover { background: var(--row); }
+      a.btn { color: var(--accent); text-decoration: none; font-weight: 600; }
+      a.btn[aria-disabled="true"] { color: #888; pointer-events: none; }
+      .muted { color: var(--muted); font-size: 12px; }
+      .small { font-size: 12px; }
+      footer { padding: 20px; color: var(--muted); font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Índice de Louvores <span id="count" class="count"></span></h1>
+      <div class="controls">
+        <input id="q" type="search" placeholder="Pesquisar por nome, ordinal ou página (pdf)" />
+        <select id="sort">
+          <option value="nome">Ordenar: Nome (A→Z)</option>
+          <option value="ordinal">Ordenar: Ordinal (1→n)</option>
+          <option value="pdf">Ordenar: Página PDF (13→296)</option>
+        </select>
+      </div>
+    </header>
+    <main>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:56px;">Abrir</th>
+            <th>Nome</th>
+            <th style="width:100px;">Ordinal</th>
+            <th style="width:120px;">Página (PDF)</th>
+          </tr>
+        </thead>
+        <tbody id="list"></tbody>
+      </table>
+    </main>
+    <footer>
+      Fonte do PDF: <span class="small">./sources/COLETÂNEA AVULSOS CIFRADA 2024.pdf</span>
+    </footer>
+
+    <script type="module">
+      import louvores from './indexes/louvores-index.js';
+
+      // Caminho para o PDF (codificado para suportar acentos e espaços)
+      const pdfFileName = 'COLETÂNEA AVULSOS CIFRADA 2024.pdf';
+      const pdfUrl = './sources/' + encodeURIComponent(pdfFileName);
+
+      const listEl = document.getElementById('list');
+      const qEl = document.getElementById('q');
+      const sortEl = document.getElementById('sort');
+      const countEl = document.getElementById('count');
+
+      // Sanitiza/garante o shape { nome, ordinal, pdf }
+      const data = louvores.map(x => ({
+        nome: String(x.nome || ''),
+        ordinal: (typeof x.ordinal === 'number') ? x.ordinal : null,
+        pdf: (typeof x.pdf === 'number') ? x.pdf : -1,
+      }));
+
+      const clampStart = 13, clampEnd = 296;
+
+      function pageUrl(pdfPage) {
+        // Abre no visualizador do navegador na página exata
+        return `${pdfUrl}#page=${pdfPage}`;
+      }
+
+      function render(items) {
+        listEl.innerHTML = '';
+        for (const it of items) {
+          const tr = document.createElement('tr');
+          const canOpen = typeof it.pdf === 'number' && it.pdf >= clampStart && it.pdf <= clampEnd;
+          const a = document.createElement('a');
+          a.className = 'btn';
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.textContent = canOpen ? 'Abrir' : '—';
+          if (canOpen) {
+            a.href = pageUrl(it.pdf);
+            a.title = `Abrir na página ${it.pdf}`;
+          } else {
+            a.setAttribute('aria-disabled', 'true');
+            a.href = 'javascript:void(0)';
+            a.title = 'Página não identificada automaticamente';
+          }
+
+          const tdOpen = document.createElement('td');
+          tdOpen.appendChild(a);
+          const tdNome = document.createElement('td');
+          tdNome.textContent = it.nome;
+          const tdOrd = document.createElement('td');
+          tdOrd.textContent = (it.ordinal ?? '—');
+          const tdPdf = document.createElement('td');
+          tdPdf.textContent = (it.pdf > 0 ? it.pdf : '—');
+
+          tr.appendChild(tdOpen);
+          tr.appendChild(tdNome);
+          tr.appendChild(tdOrd);
+          tr.appendChild(tdPdf);
+          listEl.appendChild(tr);
+        }
+        countEl.textContent = `(${items.length} itens)`;
+      }
+
+      function applyFilters() {
+        const q = (qEl.value || '').trim().toLowerCase();
+        const key = sortEl.value;
+        let items = data;
+        if (q) {
+          items = items.filter(it => {
+            return (
+              it.nome.toLowerCase().includes(q) ||
+              String(it.ordinal ?? '').includes(q) ||
+              String(it.pdf ?? '').includes(q)
+            );
+          });
+        }
+        items = [...items].sort((a, b) => {
+          if (key === 'ordinal') return (a.ordinal ?? Infinity) - (b.ordinal ?? Infinity);
+          if (key === 'pdf') return (a.pdf ?? Infinity) - (b.pdf ?? Infinity);
+          // default: nome
+          return a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' });
+        });
+        render(items);
+      }
+
+      qEl.addEventListener('input', applyFilters);
+      sortEl.addEventListener('change', applyFilters);
+
+      // Inicializa
+      applyFilters();
+
+      // Atalhos: Enter no campo de busca abre o primeiro resultado
+      qEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const firstLink = document.querySelector('tbody a.btn[href]');
+          if (firstLink) firstLink.click();
+        }
+      });
+    </script>
+  </body>
+  </html>
