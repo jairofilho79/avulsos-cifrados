@@ -65,9 +65,12 @@
     <script type="module">
       import louvores from './indexes/louvores-index.js';
 
-      // Caminho para o PDF (codificado para suportar acentos e espaços)
+      // URL do leitor externo
+      const leitorUrl = 'https://coletaneadigitalicm.github.io/leitor-pdf/';
+      
+      // URL pública do PDF hospedado
       const pdfFileName = 'COLETÂNEA AVULSOS CIFRADA 2024.pdf';
-      const pdfUrl = './sources/' + encodeURIComponent(pdfFileName);
+      const pdfUrl = 'https://jairofilho79.github.io/avulsos-cifrados/sources/' + encodeURIComponent(pdfFileName);
 
       const listEl = document.getElementById('list');
       const qEl = document.getElementById('q');
@@ -84,8 +87,8 @@
       const clampStart = 13, clampEnd = 296;
 
       function pageUrl(pdfPage) {
-        // Abre no visualizador do navegador na página exata
-        return `${pdfUrl}#page=${pdfPage}`;
+        // Abre no leitor externo com url e page
+        return `${leitorUrl}?url=${encodeURIComponent(pdfUrl)}#page=${pdfPage}`;
       }
 
       function render(items) {
