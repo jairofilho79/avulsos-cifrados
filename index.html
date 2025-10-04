@@ -37,11 +37,12 @@
     <header>
       <h1>Índice de Louvores <span id="count" class="count"></span></h1>
       <div class="controls">
-        <input id="q" type="search" placeholder="Pesquisar por nome, ordinal ou página (pdf)" />
+  <input id="q" type="search" placeholder="Pesquisar por nome, ordinal, página ou arquivo" />
         <select id="sort">
           <option value="nome">Ordenar: Nome (A→Z)</option>
           <option value="ordinal">Ordenar: Ordinal (1→n)</option>
-          <option value="pdf">Ordenar: Página PDF (13→296)</option>
+          <option value="pdf">Ordenar: Página (1→n)</option>
+          <option value="pdfFile">Ordenar: Arquivo (A→Z)</option>
         </select>
       </div>
     </header>
@@ -51,59 +52,121 @@
           <tr>
             <th style="width:56px;">Abrir</th>
             <th>Nome</th>
-            <th style="width:100px;">Ordinal</th>
+            <th style="width:110px;">Ordinal</th>
             <th style="width:120px;">Página (PDF)</th>
+            <th style="width:200px;">Arquivo</th>
           </tr>
         </thead>
         <tbody id="list"></tbody>
       </table>
     </main>
     <footer>
-      Fonte do PDF: <span class="small">./sources/COLETÂNEA AVULSOS CIFRADA 2024.pdf</span>
+      Fontes: <span id="sources" class="small"></span>
     </footer>
 
     <script type="module">
       import louvores from './indexes/louvores-index.js';
 
-      // URL do leitor externo
       const leitorUrl = 'https://coletaneadigitalicm.github.io/leitor-pdf/';
-      
-      // URL pública do PDF hospedado
-      const pdfFileName = 'COLETÂNEA AVULSOS CIFRADA 2024.pdf';
-      const pdfUrl = 'https://jairofilho79.github.io/avulsos-cifrados/sources/' + encodeURIComponent(pdfFileName);
+      const PUBLIC_BASE_URL = 'https://jairofilho79.github.io/avulsos-cifrados/sources/';
 
       const listEl = document.getElementById('list');
       const qEl = document.getElementById('q');
       const sortEl = document.getElementById('sort');
       const countEl = document.getElementById('count');
+      const sourcesEl = document.getElementById('sources');
 
-      // Sanitiza/garante o shape { nome, ordinal, pdf }
-      const data = louvores.map(x => ({
-        nome: String(x.nome || ''),
-        ordinal: (typeof x.ordinal === 'number') ? x.ordinal : null,
-        pdf: (typeof x.pdf === 'number') ? x.pdf : -1,
-      }));
+      const normalizeString = (value = '') => {
+        return String(value)
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .toUpperCase()
+          .replace(/[^A-Z0-9\s]/g, '')
+          .trim();
+      };
 
-      const clampStart = 13, clampEnd = 296;
+      const data = louvores.map(x => {
+        const nome = String(x.nome || '');
+        const ordinal = (typeof x.ordinal === 'number') ? x.ordinal : null;
+        const pdf = (typeof x.pdf === 'number') ? x.pdf : -1;
+        const pdfFile = x.pdfFile ? String(x.pdfFile) : '';
+        const pdfId = x.pdfId ? String(x.pdfId) : '';
+        const pdfUrlRaw = x.pdfUrl ? String(x.pdfUrl) : (pdfFile ? PUBLIC_BASE_URL + encodeURIComponent(pdfFile) : '');
+        const normNome = normalizeString(nome);
+        const normOrdinal = ordinal !== null ? normalizeString(String(ordinal)) : '';
+        const normPdf = pdf > 0 ? normalizeString(String(pdf)) : '';
+        const normPdfFile = pdfFile ? normalizeString(pdfFile) : '';
+        const normPdfId = pdfId ? normalizeString(pdfId) : '';
 
-      function pageUrl(pdfPage) {
-        // Abre no leitor externo com url e page
-        return `${leitorUrl}?url=${encodeURIComponent(pdfUrl)}#page=${pdfPage}`;
+        return {
+          nome,
+          ordinal,
+          pdf,
+          pdfUrl: pdfUrlRaw,
+          pdfFile,
+          pdfId,
+          normNome,
+          normOrdinal,
+          normPdf,
+          normPdfFile,
+          normPdfId,
+        };
+      });
+
+      const totalCount = data.length;
+
+      const sourcesById = new Map();
+      for (const item of data) {
+        const key = item.pdfId || item.pdfFile || item.pdfUrl;
+        if (!key || sourcesById.has(key)) continue;
+        sourcesById.set(key, {
+          label: item.pdfFile || item.pdfId || 'PDF',
+          url: item.pdfUrl,
+        });
+      }
+
+      if (sourcesEl) {
+        sourcesEl.textContent = '';
+        const entries = Array.from(sourcesById.values());
+        if (!entries.length) {
+          sourcesEl.appendChild(document.createTextNode('—'));
+        }
+        entries.forEach((src, index) => {
+          if (index > 0) {
+            sourcesEl.appendChild(document.createTextNode(' · '));
+          }
+          if (src.url) {
+            const link = document.createElement('a');
+            link.href = src.url;
+            link.textContent = src.label;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            sourcesEl.appendChild(link);
+          } else {
+            sourcesEl.appendChild(document.createTextNode(src.label));
+          }
+        });
+      }
+
+      function pageUrl(item) {
+        if (!item || item.pdf <= 0 || !item.pdfUrl) return '';
+        return `${leitorUrl}?url=${encodeURIComponent(item.pdfUrl)}#page=${item.pdf}`;
       }
 
       function render(items) {
         listEl.innerHTML = '';
         for (const it of items) {
           const tr = document.createElement('tr');
-          const canOpen = typeof it.pdf === 'number' && it.pdf >= clampStart && it.pdf <= clampEnd;
+          const href = pageUrl(it);
+          const canOpen = Boolean(href);
           const a = document.createElement('a');
           a.className = 'btn';
           a.target = '_blank';
           a.rel = 'noopener';
           a.textContent = canOpen ? 'Abrir' : '—';
           if (canOpen) {
-            a.href = pageUrl(it.pdf);
-            a.title = `Abrir na página ${it.pdf}`;
+            a.href = href;
+            a.title = `Abrir "${it.nome}" na página ${it.pdf}`;
           } else {
             a.setAttribute('aria-disabled', 'true');
             a.href = 'javascript:void(0)';
@@ -118,32 +181,52 @@
           tdOrd.textContent = (it.ordinal ?? '—');
           const tdPdf = document.createElement('td');
           tdPdf.textContent = (it.pdf > 0 ? it.pdf : '—');
+          const tdFile = document.createElement('td');
+          tdFile.className = 'small';
+          tdFile.textContent = it.pdfFile || '—';
 
           tr.appendChild(tdOpen);
           tr.appendChild(tdNome);
           tr.appendChild(tdOrd);
           tr.appendChild(tdPdf);
+          tr.appendChild(tdFile);
           listEl.appendChild(tr);
         }
-        countEl.textContent = `(${items.length} itens)`;
+        countEl.textContent = `(${items.length} de ${totalCount} itens)`;
       }
 
       function applyFilters() {
-        const q = (qEl.value || '').trim().toLowerCase();
+        const rawQ = qEl.value || '';
+        const normQ = normalizeString(rawQ);
         const key = sortEl.value;
         let items = data;
-        if (q) {
-          items = items.filter(it => {
-            return (
-              it.nome.toLowerCase().includes(q) ||
-              String(it.ordinal ?? '').includes(q) ||
-              String(it.pdf ?? '').includes(q)
-            );
-          });
+        if (normQ) {
+          items = items.filter(it => (
+            (it.normNome && it.normNome.includes(normQ)) ||
+            (it.normOrdinal && it.normOrdinal.includes(normQ)) ||
+            (it.normPdf && it.normPdf.includes(normQ)) ||
+            (it.normPdfFile && it.normPdfFile.includes(normQ)) ||
+            (it.normPdfId && it.normPdfId.includes(normQ))
+          ));
         }
         items = [...items].sort((a, b) => {
-          if (key === 'ordinal') return (a.ordinal ?? Infinity) - (b.ordinal ?? Infinity);
-          if (key === 'pdf') return (a.pdf ?? Infinity) - (b.pdf ?? Infinity);
+          if (key === 'ordinal') {
+            const ao = a.ordinal ?? Infinity;
+            const bo = b.ordinal ?? Infinity;
+            return ao - bo;
+          }
+          if (key === 'pdf') {
+            const ap = a.pdf > 0 ? a.pdf : Infinity;
+            const bp = b.pdf > 0 ? b.pdf : Infinity;
+            return ap - bp;
+          }
+          if (key === 'pdfFile') {
+            const cmp = a.pdfFile.localeCompare(b.pdfFile, 'pt-BR', { sensitivity: 'base' });
+            if (cmp !== 0) return cmp;
+            const ap = a.pdf > 0 ? a.pdf : Infinity;
+            const bp = b.pdf > 0 ? b.pdf : Infinity;
+            return ap - bp;
+          }
           // default: nome
           return a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' });
         });
