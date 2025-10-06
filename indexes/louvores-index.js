@@ -13,7 +13,7 @@ const louvoresIndex = [
   { nome: "A minh'alma se enche da graça", ordinal: 263, pdf: 128, pdfUrl: "https://jairofilho79.github.io/avulsos-cifrados/sources/2025%20GL%20AVULSOS.pdf", pdfFile: "2025 GL AVULSOS.pdf", pdfId: "2025-gl-avulsos" },
   { nome: "A minha voz ó Deus", ordinal: 547, pdf: 298, pdfUrl: "https://jairofilho79.github.io/avulsos-cifrados/sources/2025%20GL%20AVULSOS.pdf", pdfFile: "2025 GL AVULSOS.pdf", pdfId: "2025-gl-avulsos" },
   { nome: "A oração (lá onde eu não posso ver)", ordinal: 317, pdf: 153, pdfUrl: "https://jairofilho79.github.io/avulsos-cifrados/sources/2025%20GL%20AVULSOS.pdf", pdfFile: "2025 GL AVULSOS.pdf", pdfId: "2025-gl-avulsos" },
-  { nome: "A palavra de poder", ordinal: 434, pdf: 219, pdfUrl: "https://jairofilho79.github.io/avulsos-cifrados/sources/2025%20GL%20AVULSOS.pdf", pdfFile: "2025 GL AVULSOS.pdf", pdfId: "2025-gl-avulsos" },
+  { nome: "A palavra de poder", ordinal: 434, pdf: 220, pdfUrl: "https://jairofilho79.github.io/avulsos-cifrados/sources/2025%20GL%20AVULSOS.pdf", pdfFile: "2025 GL AVULSOS.pdf", pdfId: "2025-gl-avulsos" },
   { nome: "A Porta", ordinal: 154, pdf: 77, pdfUrl: "https://jairofilho79.github.io/avulsos-cifrados/sources/2025%20GL%20AVULSOS.pdf", pdfFile: "2025 GL AVULSOS.pdf", pdfId: "2025-gl-avulsos" },
   { nome: "A quem tenho eu no céu", ordinal: 337, pdf: 166, pdfUrl: "https://jairofilho79.github.io/avulsos-cifrados/sources/2025%20GL%20AVULSOS.pdf", pdfFile: "2025 GL AVULSOS.pdf", pdfId: "2025-gl-avulsos" },
   { nome: "A solução", ordinal: 24, pdf: 20, pdfUrl: "https://jairofilho79.github.io/avulsos-cifrados/sources/2025%20GL%20AVULSOS.pdf", pdfFile: "2025 GL AVULSOS.pdf", pdfId: "2025-gl-avulsos" },
@@ -630,3 +630,4 @@ const louvoresIndex = [
 export default louvoresIndex;
 // CommonJS fallback
 if (typeof module !== 'undefined') { module.exports = louvoresIndex; }
+
