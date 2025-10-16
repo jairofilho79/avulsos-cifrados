@@ -150,7 +150,9 @@
 
       function pageUrl(item) {
         if (!item || item.pdf <= 0 || !item.pdfUrl) return '';
-        return `${leitorUrl}?url=${encodeURIComponent(item.pdfUrl)}#page=${item.pdf}`;
+        const fullUrl = `${item.pdfUrl}#page=${item.pdf}`;
+        const encodedUrl = btoa(fullUrl);
+        return `${leitorUrl}?url=${encodedUrl}`;
       }
 
       function render(items) {
